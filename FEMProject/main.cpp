@@ -51,6 +51,24 @@ void printMat(vector< vector<double> >& a)
 	cout<<endl;
 }
 
+void addMat(vector<vector<double> >& a, vector<vector<double> >& b)
+{
+	for(int i = 0; i < a.size(); i++){
+		for(int j = 0; j < a[i].size(); j++){
+			a[i][j] += b[i][j];
+		}
+	}
+}
+
+void mulMat(vector<vector<double> >& a, double c)
+{
+	for(int i = 0; i < a.size(); i++){
+		for(int j = 0; j < a[i].size(); j++){
+			a[i][j] *= c;
+		}
+	}
+}
+
 double shapeFunc(LOCAL_COORD lCoord, double xi, double eta)
 {
 	double coeffXi, coeffEta;
@@ -120,11 +138,9 @@ double partialEta(LOCAL_COORD lCoord, double xi, double eta)
 	return 0.25 *(1+xi)*coeffEta;
 }
 
-double findDetermJ(int elemIndx, double xi, double eta)
+void findInvJ(int elemIndx, double xi, double eta, double& detJ, vector< vector<double> >& invJ)
 {
-	double sum = 0;
 	vector< vector<double> >  J(2, vector<double>(2));
-	J[0][0] = 0; J[0][1] = 0; J[1][0] = 0; J[1][1] = 0;
 	double pXi, pEta;
 	for(int i = 0; i < NodeNumPerElem; i++){
 		int idx = NodeOrderIndx[elemIndx][i];
@@ -136,8 +152,11 @@ double findDetermJ(int elemIndx, double xi, double eta)
 		J[1][0] += pEta*GlobalCoord[idx][0]; 
 		J[1][1] += pEta*GlobalCoord[idx][1];
 	}
-	sum = J[0][0]*J[1][1] - J[0][1]*J[1][0];
-	return J[0][0]*J[1][1] - J[0][1]*J[1][0];
+	detJ = J[0][0]*J[1][1] - J[0][1]*J[1][0];
+  
+	invJ[0][0] = J[1][1]; invJ[0][1] = -J[0][1]; 
+	invJ[1][0] = -J[1][0]; invJ[1][1] = J[0][0]; 
+  mulMat(invJ, detJ);
 }
 
 void transposeMat(vector< vector<double> >& o, vector< vector<double> >& t)
@@ -150,21 +169,28 @@ void transposeMat(vector< vector<double> >& o, vector< vector<double> >& t)
 	}
 }
 
-void findStarainDispMatrix(vector< vector<double> >& strainDispMat, vector< vector<double> >& strainDispMatT, double xi, double eta)
+void findStarainDispMatrix(vector< vector<double> >& strainDispMat, vector< vector<double> >& strainDispMatT, vector< vector<double> >& invJ, double xi, double eta)
 {
+  vector<double> localDispVec(2);
+  vector<double> globalDispVec(2);
 	for(int i = 0; i < NodeNumPerElem; i++){
 		int idx = i*2;
-		strainDispMat[0][idx] = partialXi(NodeOrder[i], xi, eta); 
+    localDispVec[0] = partialXi(NodeOrder[i], xi, eta);
+    localDispVec[1] = partialEta(NodeOrder[i], xi, eta);
+
+    globalDispVec[0] = invJ[0][0]*localDispVec[0]+invJ[0][1]*localDispVec[1];
+    globalDispVec[1] = invJ[1][0]*localDispVec[0]+invJ[1][1]*localDispVec[1];
+
+		strainDispMat[0][idx] = globalDispVec[0]; 
 		strainDispMat[0][idx+1] = 0;
 
 		strainDispMat[1][idx] = 0; 
-		strainDispMat[1][idx+1] = partialEta(NodeOrder[i], xi, eta);
+		strainDispMat[1][idx+1] = globalDispVec[1];
 
-		strainDispMat[2][idx] = partialEta(NodeOrder[i], xi, eta); 
-		strainDispMat[2][idx+1] = partialXi(NodeOrder[i], xi, eta);
+		strainDispMat[2][idx] = globalDispVec[1]; 
+		strainDispMat[2][idx+1] = globalDispVec[0];
 	}
 	transposeMat(strainDispMat, strainDispMatT);
-	
 	//printMat(strainDispMat);
 }
 
@@ -173,9 +199,12 @@ void f(double xi, double eta, int elemIdx, vector<vector<double> >& BTEB)
 	vector< vector<double> >  B(3, vector<double>(8));
 	vector< vector<double> >  BT(8, vector<double>(3));
 	vector< vector<double> > EB(3, vector<double>(8));
+  
+	vector< vector<double> >  invJ(2, vector<double>(2));
+	double detJ;
+  findInvJ(elemIdx, xi, eta, detJ, invJ);
 
-	findStarainDispMatrix(B, BT, xi, eta);
-	double detJ = findDetermJ(elemIdx, xi, eta);
+	findStarainDispMatrix(B, BT, invJ, xi, eta);
 	
 	//@comment [E][B]
 	for(int i = 0; i < 3; i++){
@@ -202,25 +231,6 @@ void f(double xi, double eta, int elemIdx, vector<vector<double> >& BTEB)
 		}
 	}
 }
-
-void addMat(vector<vector<double> >& a, vector<vector<double> >& b)
-{
-	for(int i = 0; i < a.size(); i++){
-		for(int j = 0; j < a[i].size(); j++){
-			a[i][j] += b[i][j];
-		}
-	}
-}
-
-void mulMat(vector<vector<double> >& a, double c)
-{
-	for(int i = 0; i < a.size(); i++){
-		for(int j = 0; j < a[i].size(); j++){
-			a[i][j] *= c;
-		}
-	}
-}
-
 void localStiffness(int elemIndx, vector<vector<double> >& res)
 {
 	vector< vector<double> > BTEB(8, vector<double>(8));
@@ -235,7 +245,7 @@ void localStiffness(int elemIndx, vector<vector<double> >& res)
 	}
 }
 
-void combineStiffMat(vector<vector<vector<double>>>& Ktmp, vector<vector<double>>& Kd)
+void combineStiffMat(vector<vector<vector<double> > >& Ktmp, vector<vector<double> >& Kd)
 {
 	int offset = 0;
 	for(int i = 0; i < Ktmp.size(); i++){
@@ -253,7 +263,7 @@ void findStiffnessMatrix(vector< vector<double> >& K)
 {
 	vector< vector<double> > Kd(16, vector<double>(16));
 	vector< vector<double> > KdA(16, vector<double>(12));
-	vector<vector<vector<double>>> Ktmp(ElemNum, vector<vector<double>>(DimsNum*NodeNumPerElem, vector<double>(DimsNum*NodeNumPerElem)));
+	vector<vector<vector<double> > > Ktmp(ElemNum, vector<vector<double> >(DimsNum*NodeNumPerElem, vector<double>(DimsNum*NodeNumPerElem)));
 	//@comment Initialize
 	for(int i = 0; i < 2; i++){for(int j = 0; j < 8; j++){for(int k = 0; k < 8; k++){Ktmp[i][j][k] = 0;}}}
 	//@comment find the stiffness matrix of each element 
@@ -262,7 +272,7 @@ void findStiffnessMatrix(vector< vector<double> >& K)
 	}
 	combineStiffMat(Ktmp, Kd);
 
-	printMat(Kd);
+	// printMat(Kd);
 
 	vector< vector<double> > A(ElemNum*DimsNum*NodeNumPerElem, vector<double>(12));
 	vector< vector<double> > AT(12, vector<double>(ElemNum*DimsNum*NodeNumPerElem));
@@ -311,6 +321,7 @@ int main()
 	//@comment format the matrix
 	for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){K[i][j] = 0;}}
 	findStiffnessMatrix(K);
-	for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setprecision(2)<<K[i][j]<<" & ";}cout<<"\\\\"<<endl;}
+	// for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setprecision(2)<<K[i][j]<<" & ";}cout<<"\\\\"<<endl;}
+	for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setw(6)<<setprecision(2)<<K[i][j]<<" ";}cout<<endl;}
 	return 0;
 }
