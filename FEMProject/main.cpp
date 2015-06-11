@@ -156,7 +156,7 @@ void findInvJ(int elemIndx, double xi, double eta, double& detJ, vector< vector<
   
 	invJ[0][0] = J[1][1]; invJ[0][1] = -J[0][1]; 
 	invJ[1][0] = -J[1][0]; invJ[1][1] = J[0][0]; 
-  mulMat(invJ, detJ);
+	mulMat(invJ, 1.0/detJ);
 }
 
 void transposeMat(vector< vector<double> >& o, vector< vector<double> >& t)
