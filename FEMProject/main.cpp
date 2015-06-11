@@ -2,7 +2,8 @@
 #include <iomanip>
 #include <vector>
 #include <cmath>
-
+#include <numeric>
+#include "SparseMatrix.h"
 
 using namespace std;
 
@@ -273,34 +274,30 @@ void findStiffnessMatrix(vector< vector<double> >& K)
 	combineStiffMat(Ktmp, Kd);
 
 	// printMat(Kd);
+  SparseMatrix sMat;
+  sMat.setSize(16, 12);
+	vector<double> A(ElemNum*DimsNum*NodeNumPerElem);
+  for(int i = 0; i < ElemNum*DimsNum*NodeNumPerElem; i++){A[i] = 1;}
+  sMat.setStorage(A); 
+  vector<int> colptr(12+1);
+  colptr[0] = 1; colptr[1] = 2; colptr[2] = 3;
+  colptr[3] = 5; colptr[4] = 7; colptr[5] = 8;
+  colptr[6] = 9; colptr[7] = 9; colptr[8] = 10;
+  colptr[9] = 13; colptr[10] = 15; colptr[11] = 16;
+  colptr[12] = 17;
+  vector<int> colIdx(ElemNum*DimsNum*NodeNumPerElem);
+  colIdx[0] = 0; colIdx[1] = 1; colIdx[2] = 2; colIdx[3] = 8;
+  colIdx[4] = 3; colIdx[5] = 9; colIdx[6] = 10; colIdx[7] = 11;  
+  colIdx[8] = 6; colIdx[9] = 7; colIdx[10] = 4; colIdx[11] = 14;  
+  colIdx[12] = 5; colIdx[13] = 15; colIdx[14] = 12; colIdx[15] = 13;  
+  sMat.setColParam(colptr, colIdx);
+  sMat.setRowParam(colptr, colIdx);
+  vector<vector<double> > tmp = sMat.sparseXmat(Kd);
+  printMat(tmp);
+  cout<<"TEST"<<endl;
+  K = sMat.matXsparse(tmp);
 
-	vector< vector<double> > A(ElemNum*DimsNum*NodeNumPerElem, vector<double>(12));
-  vector< vector<double> > AT(12, vector<double>(ElemNum*DimsNum*NodeNumPerElem));
-  A[0][0] = 1; A[1][1] = 1; A[2][2] = 1; A[3][3] = 1; 
-  A[4][8] = 1; A[5][9] = 1; A[6][7] = 1; A[7][8] = 1; 
-
-  A[8][2] = 1;  A[9][3] = 1;  A[10][4] = 1; A[11][5] = 1; 
-  A[12][10] = 1; A[13][11] = 1; A[14][8] = 1; A[15][9] = 1; 
-  transposeMat(A, AT);
-
-	//@comment KdA
-	for(int i = 0; i < 16; i++){
-		for(int j = 0; j < 12; j++){
-			KdA[i][j] = 0;
-			for(int k = 0; k < 16; k++){
-				KdA[i][j] += Kd[i][k]*A[k][j];
-			}
-		}
-	}
-	//@comment A^TKdA
-	for(int i = 0; i < 12; i++){
-		for(int j = 0; j < 12; j++){
-			for(int k = 0; k < 16; k++){
-				K[i][j] += AT[i][k]*KdA[k][j];
-			}
-		}
-	}
-}
+ }
 
 int main()
 {
