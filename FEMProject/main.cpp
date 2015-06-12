@@ -292,10 +292,7 @@ void findStiffnessMatrix(vector< vector<double> >& K)
   colIdx[12] = 5; colIdx[13] = 15; colIdx[14] = 12; colIdx[15] = 13;  
   sMat.setColParam(colptr, colIdx);
   sMat.setRowParam(colptr, colIdx);
-  vector<vector<double> > tmp = sMat.matXsparse(Kd);
-  cout<<"TEST"<<endl;
-  K = sMat.matXsparse(tmp);
-
+  K = sMat.sparseXmat(sMat.matXsparse(Kd));
  }
 
 int main()
@@ -304,7 +301,7 @@ int main()
 	//@comment format the matrix
 	for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){K[i][j] = 0;}}
 	findStiffnessMatrix(K);
-	for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setprecision(2)<<K[i][j]<<" & ";}cout<<"\\\\"<<endl;}
-	// for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setw(6)<<setprecision(2)<<K[i][j]<<" ";}cout<<endl;}
+	// for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setprecision(2)<<K[i][j]<<" & ";}cout<<"\\\\"<<endl;}
+	for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setw(6)<<setprecision(2)<<K[i][j]<<" ";}cout<<endl;}
 	return 0;
 }

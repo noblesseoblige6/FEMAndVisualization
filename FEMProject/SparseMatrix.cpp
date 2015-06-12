@@ -31,9 +31,9 @@ void SparseMatrix::setColParam(const std::vector<int>& ptr, const std::vector<in
 
 vector<vector<double> > SparseMatrix::sparseXmat(const vector<vector<double> >& mat)
 {
-  vector<vector<double> > res(rowPtr.size(), vector<double>(mat.size()));
-  for(int i = 0; i < rowPtr.size(); i++){
-    for(int j = 0; j < mat.size(); j++){
+  vector<vector<double> > res(colSize, vector<double>(colSize));
+  for(int i = 0; i < colSize; i++){
+    for(int j = 0; j < colSize; j++){
       res[i][j] = 0;
       for(int k = rowPtr[i]-1; k < rowPtr[i+1]-1; k++){
         res[i][j] += a[k]*mat[rowIdx[k]][j];
