@@ -265,8 +265,6 @@ void findStiffnessMatrix(vector< vector<double> >& K)
 	vector< vector<double> > Kd(16, vector<double>(16));
 	vector< vector<double> > KdA(16, vector<double>(12));
 	vector<vector<vector<double> > > Ktmp(ElemNum, vector<vector<double> >(DimsNum*NodeNumPerElem, vector<double>(DimsNum*NodeNumPerElem)));
-	//@comment Initialize
-	for(int i = 0; i < 2; i++){for(int j = 0; j < 8; j++){for(int k = 0; k < 8; k++){Ktmp[i][j][k] = 0;}}}
 	//@comment find the stiffness matrix of each element 
 	for(int i = 0; i < ElemNum; i++){
 		localStiffness(i, Ktmp[i]);
@@ -290,16 +288,13 @@ void findStiffnessMatrix(vector< vector<double> >& K)
   colIdx[4] = 3; colIdx[5] = 9; colIdx[6] = 10; colIdx[7] = 11;  
   colIdx[8] = 6; colIdx[9] = 7; colIdx[10] = 4; colIdx[11] = 14;  
   colIdx[12] = 5; colIdx[13] = 15; colIdx[14] = 12; colIdx[15] = 13;  
-  sMat.setColParam(colptr, colIdx);
-  sMat.setRowParam(colptr, colIdx);
-  K = sMat.sparseXmat(sMat.matXsparse(Kd));
+  sMat.setParam(colptr, colIdx);
+  K = sMat.transSparseXmat(sMat.matXsparse(Kd));
  }
 
 int main()
 {
 	vector< vector<double> > K(12, vector<double>(12));
-	//@comment format the matrix
-	for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){K[i][j] = 0;}}
 	findStiffnessMatrix(K);
 	// for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setprecision(2)<<K[i][j]<<" & ";}cout<<"\\\\"<<endl;}
 	for(int i = 0; i < 12; i++){for(int j = 0; j < 12; j++){cout<<setw(6)<<setprecision(2)<<K[i][j]<<" ";}cout<<endl;}

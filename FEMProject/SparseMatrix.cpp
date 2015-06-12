@@ -17,26 +17,20 @@ void SparseMatrix::setStorage(const std::vector<double>& s)
   copy(s.begin(), s.end(), back_inserter(a));    
 }
 
-void SparseMatrix::setRowParam(const std::vector<int>& ptr, const std::vector<int>& idx)
+void SparseMatrix::setParam(const std::vector<int>& inPtr, const std::vector<int>& inIdx)
 {
-  copy(ptr.begin(), ptr.end(), back_inserter(rowPtr));    
-  copy(idx.begin(), idx.end(), back_inserter(rowIdx));    
+  copy(inPtr.begin(), inPtr.end(), back_inserter(ptr));    
+  copy(inIdx.begin(), inIdx.end(), back_inserter(idx));    
 }
 
-void SparseMatrix::setColParam(const std::vector<int>& ptr, const std::vector<int>& idx)
-{
-  copy(ptr.begin(), ptr.end(), back_inserter(colPtr));    
-  copy(idx.begin(), idx.end(), back_inserter(colIdx));    
-}
-
-vector<vector<double> > SparseMatrix::sparseXmat(const vector<vector<double> >& mat)
+vector<vector<double> > SparseMatrix::transSparseXmat(const vector<vector<double> >& mat)
 {
   vector<vector<double> > res(colSize, vector<double>(colSize));
   for(int i = 0; i < colSize; i++){
     for(int j = 0; j < colSize; j++){
       res[i][j] = 0;
-      for(int k = rowPtr[i]-1; k < rowPtr[i+1]-1; k++){
-        res[i][j] += a[k]*mat[rowIdx[k]][j];
+      for(int k = ptr[i]-1; k < ptr[i+1]-1; k++){
+        res[i][j] += a[k]*mat[idx[k]][j];
       }
     }
   }
@@ -50,9 +44,8 @@ vector<vector<double> > SparseMatrix::matXsparse(const vector<vector<double> >& 
   for(int i = 0; i < mat.size(); i++){
     for(int j = 0; j < colSize; j++){
       res[i][j] = 0;
-      for(int k = colPtr[j]-1; k < colPtr[j+1]-1; k++){
-        // cout<<i<<" "<<j<<" "<<k<<endl;
-        res[i][j] += a[k]*mat[i][colIdx[k]];
+      for(int k = ptr[j]-1; k < ptr[j+1]-1; k++){
+        res[i][j] += a[k]*mat[i][idx[k]];
       }
     }
   }
